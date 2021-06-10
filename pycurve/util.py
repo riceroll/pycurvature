@@ -52,9 +52,9 @@ def analyzeVideo(inDir, t0=2, dt=10.2 ,outDir=None):
 
     setting = {
         'rgbLb': (30, 200, 40),
-        'rgbUb': (150, 255, 150),
-        'dilateErode': [20],
-        'alpha': 2.1,
+        'rgbUb': (200, 255, 180),
+        'dilateErode': [10],
+        'alpha': 2.6,
         'beta': -127,
         'numCurves': 1
     }
@@ -78,7 +78,7 @@ def analyzeVideo(inDir, t0=2, dt=10.2 ,outDir=None):
             t += dt
         else:
             break
-    
+        
         # break
 
     text = "\n".join(textItems)

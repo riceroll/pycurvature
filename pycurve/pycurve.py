@@ -112,10 +112,10 @@ class CurveMeasurer:
             def distance(input):
                 xc, yc, r = input
                 ret = (c[:, 0] - xc) ** 2 + (c[:, 1] - yc) ** 2 - r ** 2
-                if r < 0:
-                    ret -= 100000
+                # if r < 0:
+                #     ret -= 100000
                 return ret
-    
+        
             sols = optimize.leastsq(distance, np.array([c.mean(0)[0], c.mean(1)[1], (c.max(0)[0] - c.min(0)[0]) / 2]))
     
             xc, yc, r = sols[0]
@@ -126,7 +126,10 @@ class CurveMeasurer:
             fontScale = np.sqrt(img0.shape[0] * img0.shape[1] / (400 * 400)) * 0.5
             thickness = int(np.sqrt(img0.shape[0] * img0.shape[1] / (400 * 400)) * 1)
             
-            img0 = cv2.circle(img0, [int(xc), int(yc)], int(r), color=(255, 0, 0), thickness=thickness)
+            try:
+                img0 = cv2.circle(img0, [int(xc), int(yc)], int(abs(r)), color=(255, 0, 0), thickness=thickness)
+            except:
+                print(thickness, xc, yc, r)
             img0 = cv2.putText(img0, str("{:.2f}".format(r)), (int(center[0,0]), int(center[0,1])), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                                fontScale=fontScale,
                                color=(255, 50, 200), thickness=thickness, lineType=cv2.LINE_AA)

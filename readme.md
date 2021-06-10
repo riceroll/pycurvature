@@ -8,6 +8,7 @@ pip install .
 from pycurve.util import analyzeVideo
 analyzeVideo(inDir='./data/210607_actuator.MOV', t0=2.0, dt=10.2)
 ```
+
 ``inDir``: the directory of the input video
 ``t0``: time of the first capture (second)
 ``dt``: time interval between two captures (second)
