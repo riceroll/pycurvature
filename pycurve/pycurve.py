@@ -8,17 +8,19 @@ class CurveMeasurer:
     """
     example usage:
         image = cv2.imread("../data/foo.png")
-        cm = CurveMeasurer(image, setting)
-        cm.detect()
+        cm = CurveMeasurer(setting)
+        cm.detect(image)
         cm.show()
         cm.saveImage("../output/foo.png")
     """
     
-    def __init__(self, setting):
-        setting = self.loadDefaultSetting(setting)
+    def __init__(self, setting=None):
+        setting = self.loadSetting(setting)
         
-        self.rgbLb = setting['rgbLb']
-        self.rgbUb = setting['rgbUb']
+        self.hue = setting['hue']
+        self.hueThreshold = setting['hueThreshold']
+        self.satLb = setting['satLb']
+        self.valueLb = setting['valueLb']
         self.dilateErode = setting['dilateErode']       # e.g. [3, -3] means dilate 3 times then erode 3 times
         self.alpha = setting['alpha']       # alpha: contrast control (1.0 - 3.0)
         self.beta = setting['beta']          # beta: contrast control (-127 - 127)
@@ -29,15 +31,31 @@ class CurveMeasurer:
         self.rs = []      # [] of curvature radius
     
     @staticmethod
-    def loadDefaultSetting(setting):
+    def getDefaultSetting():
         defaultSetting = {
-            'rgbLb': (250, 150, 0),
-            'rgbUb': (255, 255, 95),
-            'dilateErode': [2, -2],
-            'alpha': 2.5,
-            'beta': -127,
-            'numCurves': 10
+            'hue': 65,              # average hue
+            'hueThreshold': 20,     # hue range: (hue - 20 ~ hue + 20)
+            'satLb': 51,            # lower bound of saturation
+            'valueLb': 51,          # lower bound of value
+            'satUb': 256,           # upper bound of saturation
+            'valueUb': 256,         # upper bound of value
+        
+            'alpha': 2.6,           # contrast,   (1.0 <= alpha <= 3.0)
+            'beta': -127,           # brightness, (-127 <= beta <= 127)
+            'dilateErode': (10,),   # sequence of transformation, e.g. (10, -5) : dilate 10 times, then erode 5 times
+            'numCurves': 1          # expected number of curves detected
         }
+        return defaultSetting
+    
+    @staticmethod
+    def loadSetting(setting):
+        assert(type(setting) is dict or setting is None)
+        
+        defaultSetting = CurveMeasurer.getDefaultSetting()
+        
+        if setting is None:
+            return defaultSetting
+        
         for key in defaultSetting:
             if key not in setting:
                 setting[key] = defaultSetting[key]
@@ -48,17 +66,26 @@ class CurveMeasurer:
         detect curvatures, store the imgs and radius, label the curvatures
         
         image: np.array input image by cv2.imread() in BGR color
-        :return:
+        :change:
             self.imgs
             self.imgOut
             self.rs
+        :return:
+            isSuccessful: bool, False if there's any error
         """
+        self.images = []
         img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         img0 = img.copy()
         img = cv2.convertScaleAbs(img, alpha=self.alpha, beta=self.beta)
+        # breakpoint()
+        self.images.append(img.copy())
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+        # breakpoint()
         self.images.append(img.copy())
         
-        img = cv2.inRange(img, self.rgbLb, self.rgbUb)
+        lb = (self.hue - self.hueThreshold, self.satLb, self.valueLb)
+        ub = (self.hue + self.hueThreshold, 256, 256)
+        img = cv2.inRange(img, lb, ub)
         img = np.array(img, np.uint8)
         self.images.append(img.copy())
 
@@ -116,7 +143,11 @@ class CurveMeasurer:
                 #     ret -= 100000
                 return ret
         
-            sols = optimize.leastsq(distance, np.array([c.mean(0)[0], c.mean(1)[1], (c.max(0)[0] - c.min(0)[0]) / 2]))
+            try:
+                sols = optimize.leastsq(distance, np.array([c.mean(0)[0], c.mean(1)[1], (c.max(0)[0] - c.min(0)[0]) / 2]))
+            except Exception as e:
+                print('error: ' + str(e))
+                return False
     
             xc, yc, r = sols[0]
             xcs.append(xc)
@@ -137,6 +168,7 @@ class CurveMeasurer:
         self.images.append(img0)
         self.imgOut = img0
         self.rs = rs
+        return True
         
     def show(self):
         height = int(np.ceil(len(self.images) / 3))
@@ -164,20 +196,20 @@ if __name__ == "__main__":
     print("output image: {}".format(outDir))
 
     setting = {
-        'rgbLb': (250, 40, 110),
-        'rgbUb': (255, 255, 210),
+        # TODO finish the test case
         'dilateErode': [2, -2],
         'alpha': 2.1,
         'beta': -127,
         'numCurves': 10
     }
-
-    image = cv2.imread(inDir)
-    cm = CurveMeasurer(setting)
-    cm.detect(image)
-    cm.show()
-    cm.saveImage(outDir)
     
-    exampleOut = cv2.imread(exampleOutDir)
-    exampleOut = cv2.cvtColor(exampleOut, cv2.COLOR_BGR2RGB)
-    assert( (cm.imgOut == exampleOut).all() )
+    #
+    # image = cv2.imread(inDir)
+    # cm = CurveMeasurer(setting)
+    # cm.detect(image)
+    # cm.show()
+    # cm.saveImage(outDir)
+    #
+    # exampleOut = cv2.imread(exampleOutDir)
+    # exampleOut = cv2.cvtColor(exampleOut, cv2.COLOR_BGR2RGB)
+    # assert( (cm.imgOut == exampleOut).all() )

@@ -30,13 +30,24 @@ def getVideoTime(dir):
     frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
     return frame_count / fps
 
-def analyzeVideo(inDir, t0=2, dt=10.2 ,outDir=None):
+def getDefaultSetting():
+    from pycurve.pycurve import CurveMeasurer
+    return CurveMeasurer.getDefaultSetting()
+
+def analyzeVideo(inDir,
+                 t0=2,
+                 dt=10.2,
+                 setting=None,
+                 outDir=None,
+                 testing=False):
     """
     
     :param inDir: input video directory
-    :param t0: initial time (second)
-    :param dt: time interval (second)
+    :param t0: the video time of the first frame to be processed (in second)
+    :param dt: the time interval between two frames to be processed (in second)
+    :param setting: setting for CV, modify on top of the default setting using ``setting = getDefaultSetting()``
     :param outDir:  output video directory
+    :param testing: if True, testing mode is enabled and processing figures will be displayed, press 'q' to skip to the next
     :return:
     """
     import os
@@ -50,16 +61,10 @@ def analyzeVideo(inDir, t0=2, dt=10.2 ,outDir=None):
         if not os.path.exists(outDir):
             os.makedirs(outDir)
 
-    setting = {
-        'rgbLb': (30, 200, 40),
-        'rgbUb': (200, 255, 180),
-        'dilateErode': [10],
-        'alpha': 2.6,
-        'beta': -127,
-        'numCurves': 1
-    }
+    if setting is None:
+        setting = CurveMeasurer.getDefaultSetting()
     cm = CurveMeasurer(setting)
-
+    
     textItems = ['No.\ttime\tradius ']
 
     t0 = t0
@@ -71,15 +76,18 @@ def analyzeVideo(inDir, t0=2, dt=10.2 ,outDir=None):
         ret = videoCapture(inDir, t)
         if ret is not False:
             image = ret
-            cm.detect(image)
+            successful = cm.detect(image)
+            if testing:
+                cm.show()
+            if not successful:
+                cm.show()
+                break
             cm.saveImage(os.path.join(outDir, '{:.2f}.png').format(t))
+            assert(len(cm.rs) == 1)
             textItems.append("{}\t{:.2f}\t{:.2f}".format(iActuation, t, cm.rs[0]))
-            # cm.show()
             t += dt
         else:
             break
-        
-        # break
 
     text = "\n".join(textItems)
     with open(os.path.join(outDir, 'data.txt'), 'w') as ofile:
