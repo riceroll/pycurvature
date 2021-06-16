@@ -1,4 +1,4 @@
-# pyCurve
+# pyCurvature
 Use opencv to detect curve and analyze curvatures from video/image.
 
 ## Installation
