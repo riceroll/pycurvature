@@ -29,9 +29,13 @@ analyzeVideo(inDir='./data/0615.MOV',
 ```
 
 ``inDir``: the directory of the input video
+
 ``t0``: time of the first capture (second)
+
 ``dt``: time interval between two captures (second)
+
 ``outDir``: directory for saving data
+
 ``testing``: true if in testing mode, where processing figures will be shown
 
 - A folder with the same name will be created at the current working directory. 
